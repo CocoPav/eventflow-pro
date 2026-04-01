@@ -69,7 +69,8 @@ const INITIAL_DATA = {
         { id: 'v2', name: 'Paolo Ossieux', email: 'paolo@email.com', phone: '06 98 76 54 32', role: 'Buvette', status: 'confirmed', notes: 'Expérience bar.', inspiredPoles: ['Buvette', 'Accueil'], hoursPerShift: 3, numberOfShifts: 3, preferredStartTime: '18:00', contact: 'Corentin', assignedLead: 'u1', shift: '18h-21h', availability: { 'Samedi-Après-midi': true, 'Samedi-Soir': true } },
         { id: 'v3', name: 'Léa Marchand', email: 'lea@email.com', phone: '07 11 22 33 44', role: 'Accueil', status: 'pending', notes: 'Bonne présentation, parle anglais.', inspiredPoles: ['Accueil', 'Communication'], hoursPerShift: 5, numberOfShifts: 2, preferredStartTime: '12:00', contact: 'Ophélie', assignedLead: 'u1', shift: '', availability: { 'Samedi-Matin': true, 'Samedi-Après-midi': true } }
       ],
-      availability: {}
+      availability: {},
+      shifts: []
     },
     budget: {
       expenses: [
@@ -321,6 +322,10 @@ export const EventProvider = ({ children }) => {
         if (!parsed.poles.logistics.columns) {
           parsed.poles.logistics.columns = DEFAULT_LOG_COLUMNS;
         }
+        // Migration: ensure volunteers.shifts exists
+        if (!parsed.poles.volunteers.shifts) {
+          parsed.poles.volunteers.shifts = [];
+        }
         // Migration: ensure eventAdmin.team exists
         if (!parsed.eventAdmin) {
           parsed.eventAdmin = INITIAL_DATA.poles.eventAdmin || { documents: [], team: INITIAL_DATA.poles.eventAdmin?.team || [] };
@@ -355,12 +360,13 @@ export const EventProvider = ({ children }) => {
   const addItem = (pole, type, item) => {
     setData(prev => {
       const newItem = { ...item, id: item.id || Date.now().toString() };
-      const current = prev.poles[pole][type];
+      const current = prev.poles[pole]?.[type];
+      const currentArr = Array.isArray(current) ? current : [];
       const newData = {
         ...prev,
         poles: {
           ...prev.poles,
-          [pole]: { ...prev.poles[pole], [type]: Array.isArray(current) ? [...current, newItem] : newItem }
+          [pole]: { ...prev.poles[pole], [type]: [...currentArr, newItem] }
         }
       };
       localStorage.setItem('eventflow_data', JSON.stringify(newData));

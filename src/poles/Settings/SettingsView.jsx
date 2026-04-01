@@ -237,7 +237,7 @@ function MembersTab() {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  const fullName = (m) => [m.firstName, m.lastName].filter(Boolean).join(' ') || m.name || '';
+  const fullName = (m) => m ? ([m.firstName, m.lastName].filter(Boolean).join(' ') || m.name || '') : '';
 
   const initials = (m) => {
     const fn = (m.firstName || '').charAt(0).toUpperCase();
