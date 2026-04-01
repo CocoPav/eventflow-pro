@@ -1,96 +1,172 @@
 import React from 'react';
-import { format, addDays, startOfISOWeek, eachDayOfInterval } from 'date-fns';
+import { format, addDays, differenceInDays, startOfDay, isToday, eachMonthOfInterval, endOfMonth, startOfMonth } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-export default function GanttChart({ tasks = [] }) {
-  // Use a wider range for Gantt - March to June 2026
-  const start = startOfISOWeek(new Date(2026, 2, 1)); 
-  const end = addDays(start, 120);
-  const days = eachDayOfInterval({ start, end });
+const PALETTE = [
+  { bg: 'rgba(59,130,246,0.12)', border: '#3b82f6', text: '#1d4ed8' },
+  { bg: 'rgba(16,185,129,0.12)', border: '#10b981', text: '#065f46' },
+  { bg: 'rgba(245,158,11,0.12)', border: '#f59e0b', text: '#92400e' },
+  { bg: 'rgba(99,102,241,0.12)', border: '#6366f1', text: '#3730a3' },
+  { bg: 'rgba(239,68,68,0.12)', border: '#ef4444', text: '#991b1b' },
+];
 
-  const getPos = (dateStr) => {
-    if (!dateStr) return 0;
-    const date = new Date(dateStr);
-    const diff = Math.floor((date - start) / (1000 * 60 * 60 * 24));
-    return Math.max(0, diff * 30); // 30px per day
+function getColor(task, idx) {
+  if (task.priority === 'high') return PALETTE[4];
+  if (task.category === 'concert') return PALETTE[0];
+  if (task.category === 'village') return PALETTE[1];
+  if (task.category === 'course') return PALETTE[2];
+  return PALETTE[idx % PALETTE.length];
+}
+
+export default function GanttChart({ tasks = [], rangeStart, rangeEnd }) {
+  const today = startOfDay(new Date());
+  const start = rangeStart ? startOfDay(new Date(rangeStart)) : new Date(2026, 2, 1);
+  const end = rangeEnd ? startOfDay(new Date(rangeEnd)) : new Date(2026, 6, 1);
+  const totalDays = Math.max(1, differenceInDays(end, start) + 1);
+  const DAY_W = 22;
+  const ROW_H = 36;
+  const LABEL_W = 220;
+
+  const getX = (dateStr) => {
+    if (!dateStr) return -1;
+    const d = startOfDay(new Date(dateStr));
+    return differenceInDays(d, start) * DAY_W;
   };
 
+  const todayX = differenceInDays(today, start) * DAY_W;
+  const days = Array.from({ length: totalDays }, (_, i) => addDays(start, i));
+
+  // Month spans
+  const months = eachMonthOfInterval({ start, end });
+  const monthSpans = months.map(month => {
+    const mStart = month < start ? start : startOfMonth(month);
+    const mEnd = month > end ? end : endOfMonth(month);
+    return {
+      label: format(month, 'MMMM yyyy', { locale: fr }),
+      width: (differenceInDays(mEnd, mStart) + 1) * DAY_W
+    };
+  });
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 0.5rem' }}>
-         <h3 style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Chronologie du Projet</h3>
-         <div style={{ display: 'flex', gap: '1rem', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.4)' }} /> Haute Priorité</span>
-           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(59, 130, 246, 0.4)' }} /> Moyenne Priorité</span>
-         </div>
-       </div>
+    <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+      <div style={{ overflowX: 'auto' }}>
+        <div style={{ minWidth: LABEL_W + totalDays * DAY_W }}>
 
-       <div className="card glass" style={{ overflowX: 'auto', padding: 0, borderRadius: '12px' }}>
-        <div style={{ minWidth: days.length * 30 + 250 }}>
-            {/* Header with Months */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
-              <div style={{ width: 250, padding: '1rem', fontWeight: 800, borderRight: '1px solid var(--border)', position: 'sticky', left: 0, background: 'var(--bg-card)', zIndex: 10 }}>ACTIONS</div>
-              <div style={{ flex: 1, display: 'flex' }}>
-                {days.map((d, i) => (
-                  (i === 0 || format(d, 'dd') === '01') && (
-                    <div key={d.toString()} style={{ minWidth: '100px', padding: '1rem', fontSize: '0.7rem', fontWeight: 800, color: 'var(--primary)', textTransform: 'uppercase' }}>
-                      {format(d, 'MMMM yyyy', { locale: fr })}
-                    </div>
-                  )
-                ))}
+          {/* Month header */}
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: '#fafafa', height: 36 }}>
+            <div style={{
+              width: LABEL_W, minWidth: LABEL_W, borderRight: '1px solid var(--border)',
+              padding: '0 14px', display: 'flex', alignItems: 'center',
+              fontSize: '0.62rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.06em',
+              position: 'sticky', left: 0, background: '#fafafa', zIndex: 10
+            }}>
+              TÂCHE
+            </div>
+            {monthSpans.map((m, i) => (
+              <div key={i} style={{
+                width: m.width, minWidth: m.width, padding: '0 10px',
+                display: 'flex', alignItems: 'center',
+                fontSize: '0.7rem', fontWeight: 700, color: '#1a1a1b',
+                borderRight: '1px solid var(--border)', textTransform: 'capitalize'
+              }}>
+                {m.label}
               </div>
-            </div>
+            ))}
+          </div>
 
-            {/* Days sub-header */}
-            <div style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ width: 250, borderRight: '1px solid var(--border)', sticky: 'left', background: 'var(--bg-card)', zIndex: 10 }}></div>
-              {days.map(d => (
-                <div key={d.toString()} style={{ width: 30, textAlign: 'center', fontSize: '0.55rem', padding: '0.5rem 0', color: format(d, 'i') >= '6' ? 'var(--primary)' : 'var(--text-muted)', borderRight: '1px solid rgba(255,255,255,0.03)' }}>
-                  {format(d, 'dd')}
+          {/* Day header */}
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: '#fafafa', height: 26 }}>
+            <div style={{
+              width: LABEL_W, minWidth: LABEL_W, borderRight: '1px solid var(--border)',
+              position: 'sticky', left: 0, background: '#fafafa', zIndex: 10
+            }} />
+            {days.map(d => {
+              const isWE = [0, 6].includes(d.getDay());
+              const isT = isToday(d);
+              return (
+                <div key={d.toString()} style={{
+                  width: DAY_W, minWidth: DAY_W, textAlign: 'center',
+                  fontSize: '0.55rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: isT ? '#3b82f6' : isWE ? '#94a3b8' : '#cbd5e1',
+                  fontWeight: isT ? 800 : 400,
+                  borderRight: '1px solid #f8f9fa',
+                  background: isT ? '#eff6ff' : 'transparent'
+                }}>
+                  {format(d, 'd')}
                 </div>
-              ))}
-            </div>
+              );
+            })}
+          </div>
 
-            {/* Rows */}
-            {tasks.length > 0 ? tasks.map(t => (
-              <div key={t.id} style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.03)', position: 'relative', height: '50px', alignItems: 'center' }}>
-                <div style={{ width: 250, padding: '0 1rem', fontSize: '0.75rem', fontWeight: 600, borderRight: '1px solid var(--border)', height: '100%', display: 'flex', alignItems: 'center', position: 'sticky', left: 0, background: 'var(--bg-card)', zIndex: 10 }}>
-                    {t.status === 'done' ? '✓ ' : ''}{t.title}
+          {/* Empty state */}
+          {tasks.length === 0 ? (
+            <div style={{ padding: '2.5rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.875rem' }}>
+              Aucune tâche à afficher dans le rétroplanning.
+            </div>
+          ) : tasks.map((task, idx) => {
+            const colors = getColor(task, idx);
+            const endX = getX(task.dueDate || task.endDate || task.date);
+            const startX = task.startDate ? getX(task.startDate) : Math.max(0, endX - 6 * DAY_W);
+            const barWidth = Math.max(DAY_W * 1.5, endX - startX + DAY_W);
+            const rowBg = idx % 2 === 0 ? '#fff' : '#fafafa';
+
+            return (
+              <div key={task.id} style={{
+                display: 'flex', height: ROW_H,
+                borderBottom: '1px solid #f1f3f5',
+                background: rowBg, position: 'relative'
+              }}>
+                {/* Label */}
+                <div style={{
+                  width: LABEL_W, minWidth: LABEL_W,
+                  padding: '0 14px', fontSize: '0.78rem', fontWeight: 600, color: '#1a1a1b',
+                  borderRight: '1px solid var(--border)', display: 'flex', alignItems: 'center',
+                  position: 'sticky', left: 0, background: rowBg, zIndex: 5, gap: 6
+                }}>
+                  {task.status === 'done' && (
+                    <span style={{ color: '#10b981', fontSize: '0.7rem' }}>✓</span>
+                  )}
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {task.title}
+                  </span>
                 </div>
-                <div style={{ flex: 1, position: 'relative', height: '100%' }}>
-                  {t.dueDate && (
-                    <div 
-                        style={{ 
-                        position: 'absolute', 
-                        left: getPos(t.dueDate) - (t.priority === 'high' ? 90 : 60),
-                        width: t.priority === 'high' ? 120 : 90,
-                        height: '24px',
-                        top: '13px',
-                        background: t.priority === 'high' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(59, 130, 246, 0.4)',
-                        borderRadius: '6px',
-                        border: `1px solid ${t.priority === 'high' ? 'var(--danger)' : 'var(--primary)'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '0 8px',
-                        fontSize: '0.6rem',
-                        fontWeight: 800,
-                        whiteSpace: 'nowrap',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-                        }}
-                    >
-                        {t.assignee}
+
+                {/* Timeline */}
+                <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+                  {/* Weekend shading */}
+                  {days.map((d, i) => [0, 6].includes(d.getDay()) && (
+                    <div key={i} style={{
+                      position: 'absolute', left: i * DAY_W, top: 0, bottom: 0,
+                      width: DAY_W, background: 'rgba(99,102,241,0.03)'
+                    }} />
+                  ))}
+                  {/* Today line */}
+                  {todayX >= 0 && todayX < totalDays * DAY_W && (
+                    <div style={{
+                      position: 'absolute', left: todayX + DAY_W / 2 - 1, top: 0, bottom: 0,
+                      width: 2, background: '#3b82f6', opacity: 0.5, zIndex: 3
+                    }} />
+                  )}
+                  {/* Bar */}
+                  {endX >= 0 && (
+                    <div style={{
+                      position: 'absolute', left: startX, width: barWidth,
+                      top: 6, height: ROW_H - 12,
+                      background: colors.bg,
+                      border: `1.5px solid ${colors.border}`,
+                      borderRadius: 6,
+                      display: 'flex', alignItems: 'center', paddingLeft: 8,
+                      fontSize: '0.62rem', fontWeight: 700, color: colors.text,
+                      overflow: 'hidden', whiteSpace: 'nowrap', zIndex: 2
+                    }}>
+                      {task.assignee || task.title}
                     </div>
                   )}
-                  {/* Visual grid lines */}
-                  {days.map((d, i) => (
-                    <div key={i} style={{ position: 'absolute', left: i * 30, top: 0, bottom: 0, width: '1px', background: 'rgba(255,255,255,0.03)' }} />
-                  ))}
                 </div>
               </div>
-            )) : (
-              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Aucune tâche à afficher dans le rétroplanning.</div>
-            )}
+            );
+          })}
+
         </div>
       </div>
     </div>
