@@ -17,7 +17,7 @@ const EVENT_SECTIONS = [
     items: [
       { id: 'dashboard',   label: 'Tableau de bord', icon: BarChart2 },
       { id: 'tasks',       label: 'Tâches',           icon: CheckSquare },
-      { id: 'volunteers',  label: 'Inscription',      icon: Users },
+      { id: 'inscription', label: 'Inscription',      icon: Users },
       { id: 'budget',      label: 'Budget',           icon: DollarSign },
       { id: 'calendar',    label: 'Calendrier',       icon: Calendar },
       { id: 'meetings',    label: 'Réunions',         icon: MessageSquare },
@@ -26,6 +26,7 @@ const EVENT_SECTIONS = [
   {
     label: 'Gestion',
     items: [
+      { id: 'volunteers',  label: 'Bénévoles',        icon: Users },
       { id: 'logistics',   label: 'Logistique',       icon: Package },
       { id: 'communication',label:'Communication',    icon: MessageSquare },
       { id: 'consumables', label: 'Consommables',     icon: ShoppingCart },

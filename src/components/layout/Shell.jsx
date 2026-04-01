@@ -20,6 +20,7 @@ import CalendarView from '../../poles/CalendarView/CalendarView';
 import CourseView from '../../poles/Course/CourseView';
 import ConsumablesView from '../../poles/Programming/ConsumablesView';
 import SettingsView from '../../poles/Settings/SettingsView';
+import InscriptionView from '../../poles/Inscription/InscriptionView';
 
 // Association views
 import MembersView from '../../poles/Members/MembersView';
@@ -118,6 +119,7 @@ export default function Shell() {
       case 'calendar':     return <CalendarView />;
       case 'plan':         return <EventMapView />;
       case 'meetings':     return <MeetingsView />;
+      case 'inscription':  return <InscriptionView />;
       case 'settings':     return <SettingsView />;
       // legacy
       case 'event-admin':  return <SettingsView />;
